@@ -1,0 +1,130 @@
+﻿@using TestMvc.Models
+@using TestMvc.Models.Dao
+@model Director
+
+@{
+    ViewData["Title"] = "Home Page";
+    Layout = "_Layout";
+
+    List<Director> listDirectors = DaoDirector.GetInstance().ReadAll().Cast<Director>().ToList();
+}
+
+@using (Html.BeginForm("BindDdl", "Home", FormMethod.Post, new { id = "formRegisti"}))
+{
+    <label>Lista Registi</label>
+
+    <select id="selectDirectors" name="selectedDirectorId" onchange="this.form.submit();">
+        <option value="0" selected="true">Selezionare un regista</option>
+
+        @foreach (Director director in listDirectors)
+        {
+            <option value="@director.Id_Director">
+                @director.Name 
+            </option>
+        }
+
+    </select>
+
+    <select id="selectFilms" name="selectedFilmId">
+        <option value="0" selected="true">Selezionare un film</option>
+
+        @if (ViewBag.listFilm is not null)
+        {
+            foreach (Film film in ViewBag.listFilm)
+            {
+                <option value="@film.Id_Film">
+                    @film.Title
+                </option>
+            }
+        }
+
+    </select>
+    <button type="submit">Btn</button>
+}
+
+<h2>Nuovo Regista</h2>
+
+@using (Html.BeginForm("CreateDirector", "Home", FormMethod.Post))
+{
+    //sicuirezza
+    //@Html.AntiForgeryToken()
+
+    <div class="form-group">
+        @Html.LabelFor(m => m.Name)
+        @Html.TextBoxFor(m => m.Name)
+    </div>
+
+    <button type="submit">Btn</button>
+}
+
+<h2>Lista dei Film</h2>
+
+@if (ViewBag.showGrid is not null && ViewBag.showGrid)
+{
+    <div id="grid"></div>
+}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var grid = new kendo.ui.Grid(document.getElementById("grid"), {
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "@Url.Action("GetFilms", "Home")", 
+                        dataType: "json"
+                    }
+                },
+                schema: {
+                    model: {
+                        fields: {
+                            Id: { type: "number" },
+                            Titolo: { type: "string" },
+                            Regista: { type: "string" }
+                        }
+                    }
+                },
+                pageSize: 2
+            },
+            pageable: true,  
+            columns: [
+                { command: ["edit", "destroy"], title: "Options ", width: "250px"},
+                { field: "Director.Name", title: "Regista" },
+                { field: "FilmNumbers", title: "FilmNumbers" },
+            ]
+        });
+    });
+</script>
+<script>
+    function saveSelection() {
+        var selectedDirectorId = document.getElementById("selectDirectors").value;
+        var selectedFilmId = document.getElementById("selectFilms").value;
+
+        var selectionData = {
+            directorId: selectedDirectorId,
+            filmId: selectedFilmId
+        };
+
+        localStorage.setItem("selectionData", JSON.stringify(selectionData));
+    }
+
+    function restoreSelection() {
+        var savedData = localStorage.getItem("selectionData");
+
+        if (savedData) {
+            var selectionData = JSON.parse(savedData);
+
+            var selectDirectors = document.getElementById("selectDirectors");
+            selectDirectors.value = selectionData.directorId;
+
+            var selectFilms = document.getElementById("selectFilms");
+            selectFilms.value = selectionData.filmId;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        restoreSelection();
+
+        document.getElementById("selectDirectors").addEventListener("change", saveSelection);
+        document.getElementById("selectFilms").addEventListener("change", saveSelection);
+    });
+</script>
